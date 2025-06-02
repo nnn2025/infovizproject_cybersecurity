@@ -222,7 +222,7 @@
         // Load CSV from GitHub
         d3.csv("https://raw.githubusercontent.com/nnn2025/infovizproject_cybersecurity/main/Global_Cybersecurity_Threats_2015-2024.csv").then(data => {
             loadData(data);
-        .catch(error => {
+        }).catch(error => {
            console.error("Error loading CSV:", error);
             alert("Failed to load CSV. Check the URL.");
         });
