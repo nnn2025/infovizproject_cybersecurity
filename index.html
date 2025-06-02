@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/topojson@3"></script>
     <style>
         body {
-            background: #eee;
+            background: #ffffff;
             overflow-y: scroll;
             font-family: sans-serif;
             margin: auto;
@@ -16,14 +16,13 @@
         .grid-container {
             display: grid;
             grid-template-columns: auto auto;
-            gap: 10px;
-            padding: 10px;
+            gap: 5px;
+            padding:15px;
         }
 
         .grid-container > div {
             text-align: center;
-            padding: 10px;
-            font-size: 20px;
+            padding: 30px;
         }
 
         svg {
@@ -69,7 +68,7 @@
         .table-container {
             max-height: 400px;
             overflow-y: auto;
-            width: 500px;
+            width: 90%;
             margin: auto;
             font-size: 15px;
         }
@@ -78,7 +77,7 @@
             table-layout: fixed;
         }
         th, td {
-            word-wrap: break-word;
+            word-wrap: normal;
             max-width: 0;
         }
         th {
@@ -89,6 +88,14 @@
             grid-column-end: 3;
         }
         h1 {
+            background-color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+        /* Style the footer */
+        .footer {
+            background-color: #ffffff;
+            padding: 20px;
             text-align: center;
         }
     </style>
@@ -124,17 +131,17 @@
                      </table>
                 </div>                    
             </div>  
-        <div class="item4">
-            <svg width="650" height="400" id="histogram"></svg>
-        </div>
-        <div class="item5">
-            <svg width="650" height="400" id="box"></svg>
+            <div class="item4">
+                <svg width="650" height="400" id="histogram"></svg>
+            </div>
+            <div class="item5">
+                <svg width="650" height="400" id="box"></svg>
+            </div>
         </div>
         <div class="tooltip" id="tooltip"></div>
-    </main>
-    <footer class="container text-center">
-        Data Source: <a href="https://www.kaggle.com/datasets/atharvasoundankar/global-cybersecurity-threats-2015-2024">Global Cybersecurity Threats (2015-2024) by Atharva Soundankar</a>
-    </footer>
+        <div class="footer">
+        <p>Data Source:<a href="https://www.kaggle.com/datasets/atharvasoundankar/global-cybersecurity-threats-2015-2024">Global Cybersecurity Threats (2015-2024) by Atharva Soundankar</a></p>
+        </div>
     <script>
         let validData = [];
 
