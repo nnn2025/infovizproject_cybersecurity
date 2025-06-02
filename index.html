@@ -68,7 +68,7 @@
         .table-container {
             max-height: 400px;
             overflow-y: auto;
-            width: 90%;
+            width: 600;
             margin: auto;
             font-size: 15px;
         }
@@ -113,7 +113,7 @@
                 <button onclick="resetFilters()">Reset Filters</button>
             </div>
             <div class="item2">
-                <svg width="650" height="400" id="map"></svg>			
+                <svg width="600" height="400" id="map"></svg>			
             </div>
             <div class="item3">
                 <div class="table-container">
@@ -132,10 +132,10 @@
                 </div>                    
             </div>  
             <div class="item4">
-                <svg width="650" height="400" id="histogram"></svg>
+                <svg width="600" height="400" id="histogram"></svg>
             </div>
             <div class="item5">
-                <svg width="650" height="400" id="box"></svg>
+                <svg width="600" height="400" id="box"></svg>
             </div>
         </div>
         <div class="tooltip" id="tooltip"></div>
@@ -254,17 +254,18 @@
             const mapSvg = d3.select("#map").html("");
             if (data.length === 0) {
                 mapSvg.append("text")
-                    .attr("x", 300) 
-                    .attr("y", 225) 
+                    .attr("x", 300)
+                    .attr("y", 225)
                     .attr("text-anchor", "middle")
                     .text("No data available for selected filters");
                 return;
             }
             const projection = d3.geoMercator()
-                .scale(100) 
-                .translate([300, 225]); 
+                .scale(100)
+                .translate([300, 225]);
             const path = d3.geoPath().projection(projection);
-            const color = d3.scaleSequential(d3.interpolateReds)
+            // Use a different sequential color scale
+            const color = d3.scaleSequential(d3.interpolateReds) 
                 .domain([0, d3.max(d3.rollup(data, v => v.length, d => d.Country).values()) || 50]);
 
             d3.json("https://unpkg.com/world-atlas@2.0.2/countries-110m.json").then(world => {
@@ -282,7 +283,7 @@
                     .attr("fill", d => counts.get(d.properties.name) ? color(counts.get(d.properties.name)) : "#ccc")
                     .attr("stroke", "#fff")
                     .on("mouseover", function(event, d) {
-                        d3.select(this).attr("fill", "Crimson");
+                        d3.select(this).attr("fill", "grey");
                         d3.select("body").append("div")
                             .attr("id", "tooltip")
                             .attr("class", "tooltip")
@@ -313,6 +314,11 @@
             const x = d3.scaleBand().domain(industries).range([50, 550]).padding(0.1);
             const y = d3.scaleLinear().domain([0, d3.max([...avgLoss.values()]) || 50]).range([250, 50]);
 
+            // Define a color scale for the histogram bars
+            const colorScale = d3.scaleOrdinal()
+                .domain(industries)
+                .range(["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2"]); // Custom colors
+
             histSvg.selectAll("rect")
                 .data(industries)
                 .enter().append("rect")
@@ -320,9 +326,9 @@
                 .attr("y", d => y(avgLoss.get(d) || 0))
                 .attr("width", x.bandwidth())
                 .attr("height", d => 250 - y(avgLoss.get(d) || 0))
-                .attr("fill", "steelblue")
+                .attr("fill", d => colorScale(d)) // Apply color scale
                 .on("mouseover", function(event, d) {
-                    d3.select(this).attr("fill", "Crimson");
+                    d3.select(this).attr("fill", "grey"); // Keep hover effect
                     d3.select("body").append("div")
                         .attr("id", "tooltip")
                         .attr("class", "tooltip")
@@ -330,11 +336,12 @@
                         .style("top", (event.pageY - 10) + "px")
                         .text(`${d}: $${avgLoss.get(d).toFixed(2)}M`);
                 })
-                .on("mouseout", function() {
-                    d3.select(this).attr("fill", "steelblue");
+                .on("mouseout", function(event, d) {
+                    d3.select(this).attr("fill", colorScale(d)); // Restore original color
                     d3.select("#tooltip").remove();
                 });
 
+            // Rest of the function remains unchanged
             histSvg.append("g")
                 .attr("transform", "translate(0,250)")
                 .call(d3.axisBottom(x).tickSize(0).tickPadding(10))
@@ -418,7 +425,7 @@
                 .attr("width", x.bandwidth())
                 .attr("height", d => y(d.q1) - y(d.q3))
                 .on("mouseover", function(event, d) {
-                    d3.select(this).attr("fill", "Crimson");
+                    d3.select(this).attr("fill", "lightgreen");
                     tooltip.style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 10) + "px")
                         .style("display", "block")
