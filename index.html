@@ -11,9 +11,10 @@
             background: #eee;
             overflow-y: scroll;
             font-family: sans-serif;
+            margin: auto;
         }
         .container {
-            max-width: 1800px;
+            max-width: 1000px;
             background: white;
             padding: 20px;
         }
@@ -53,11 +54,15 @@
         button {
             padding: 5px 10px;
             margin-left: 10px;
+            background-color: #1a1818;
+            border: none;
+            color: white;
         }
         .table-container {
             max-height: 400px;
             overflow-y: auto;
-            width: 100%;
+            width: 650px;
+            margin: auto;
         }
         table {
             width: 100%;
@@ -97,12 +102,12 @@
             <div class="col-7">
                 <div class="row">
                     <div class="col text-center">
-                        <svg width="610" height="400" id="map"></svg>
+                        <svg width="650" height="400" id="map"></svg>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col text-center">
-                        <svg width="610" height="400" id="histogram"></svg>
+                        <svg width="650" height="400" id="histogram"></svg>
                     </div>
                 </div>
             </div>
@@ -123,7 +128,7 @@
                 </div>
                 <div class="row">
                     <div class="col text-center">
-                        <svg width="500" height="400" id="box"></svg>
+                        <svg width="650" height="400" id="box"></svg>
                     </div>
                 </div>
             </div>
@@ -245,15 +250,15 @@
             const mapSvg = d3.select("#map").html("");
             if (data.length === 0) {
                 mapSvg.append("text")
-                    .attr("x", 300) // Centered for 600px width
-                    .attr("y", 225) // Centered for 450px height
+                    .attr("x", 300) 
+                    .attr("y", 225) 
                     .attr("text-anchor", "middle")
                     .text("No data available for selected filters");
                 return;
             }
             const projection = d3.geoMercator()
-                .scale(100) // Increased scale to fit 610x400
-                .translate([300, 225]); // Centered for 600x450
+                .scale(100) 
+                .translate([300, 225]); 
             const path = d3.geoPath().projection(projection);
             const color = d3.scaleSequential(d3.interpolateReds)
                 .domain([0, d3.max(d3.rollup(data, v => v.length, d => d.Country).values()) || 50]);
@@ -273,7 +278,7 @@
                     .attr("fill", d => counts.get(d.properties.name) ? color(counts.get(d.properties.name)) : "#ccc")
                     .attr("stroke", "#fff")
                     .on("mouseover", function(event, d) {
-                        d3.select(this).attr("fill", "orange");
+                        d3.select(this).attr("fill", "Crimson");
                         d3.select("body").append("div")
                             .attr("id", "tooltip")
                             .attr("class", "tooltip")
@@ -313,7 +318,7 @@
                 .attr("height", d => 250 - y(avgLoss.get(d) || 0))
                 .attr("fill", "steelblue")
                 .on("mouseover", function(event, d) {
-                    d3.select(this).attr("fill", "orange");
+                    d3.select(this).attr("fill", "Crimson");
                     d3.select("body").append("div")
                         .attr("id", "tooltip")
                         .attr("class", "tooltip")
@@ -358,7 +363,7 @@
                 return;
             }
             const margin = {top: 50, right: 50, bottom: 100, left: 80};
-            const width = 500 - margin.left - margin.right;
+            const width = 600 - margin.left - margin.right;
             const height = 400 - margin.top - margin.bottom;
 
             const g = boxSvg.append("g")
