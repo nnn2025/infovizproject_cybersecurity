@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CyberSecurity Threats</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <style>
+        body {
+            background: #eee;
+            overflow-y: scroll;
+            font-family: sans-serif;
+        }
+        .container {
+            max-width: 1800px;
+            background: white;
+            padding: 20px;
+        }
+        svg {
+            display: block;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+        }
+        .tooltip {
+        position: absolute;
+        padding: 8px;
+        background: rgba(185, 111, 7, 0.7);
+        color: white;
+        border-radius: 4px;
+        font-size: 12px;
+        pointer-events: none;
+        visibility: hidden;
+        }
+        .box {
+            stroke: black;
+            fill: lightblue;
+        }
+        .median-line {
+            stroke: black;
+            stroke-width: 2;
+        }
+        .whisker {
+            stroke: black;
+            stroke-width: 2;
+        }
+        .outlier {
+            fill: rgb(155, 27, 13);
+            stroke: black;
+        }
+        select {
+            margin-right: 10px;
+            padding: 5px;
+            width: 200px;
+        }
+        button {
+            padding: 5px 10px;
+            margin-left: 10px;
+        }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        th, td {
+            word-wrap: break-word;
+            max-width: 0;
+        }
+        th {
+        background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container navbar navbar-light bg-light">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">Cybersecurity Threats Dashboard</span>
+            </div>
+        </nav>
+    </header>
+    <main class="container pb-3">
+        <div class="row pt-2">
+            <div class="col">
+                <p>Select the options in filters:</p>
+                <label for="year-filter">Year:</label>
+                <select id="year-filter"></select>
+                <label for="attack-type-filter">Attack Type:</label>
+                <select id="attack-type-filter"></select>
+                <label for="country-filter">Country:</label>
+                <select id="country-filter"></select>
+                <button onclick="resetFilters()">Reset Filters</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-7">
+                <div class="row">
+                    <div class="col text-center">
+                        <svg width="610" height="400" id="map"></svg>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col text-center">
+                        <svg width="610" height="400" id="histogram"></svg>
+                    </div>
+                </div>
+            </div>
+            <div class="col-5">
+                <div class="table-container">
+                    <table class="table table-striped text-center">
+                        <thead>
+                            <tr>
+                                <th>Year</th>
+                                <th>Country</th>
+                                <th>Attack Type</th>
+                                <th>Financial Loss</th>
+                                <th>Target Industry</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-table"></tbody>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col text-center">
+                        <svg width="500" height="400" id="box"></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tooltip" id="tooltip"></div>
+    </main>
+    <footer class="container text-center">
+        Data Source: <a href="https://www.kaggle.com/datasets/atharvasoundankar/global-cybersecurity-threats-2015-2024">Global Cybersecurity Threats (2015-2024) by Atharva Soundankar</a>
+    </footer>
+    <script>
+        let validData = [];
+
+        function loadData(data) {
+            console.log("Loaded Data (First 5 Rows):", data.slice(0, 5));
+            console.log("Raw Attack_Type Values:", data.map(d => d.Attack_Type));
+
+            // Process data
+            data.forEach(d => {
+                d.Year = isNaN(+d.Year) ? 0 : +d.Year;
+                d.Financial_Loss = isNaN(+d.Financial_Loss) ? 0 : +d.Financial_Loss;
+                d.Resolution_Time = isNaN(+d.Resolution_Time) ? 0 : +d.Resolution_Time;
+                d.Country = d.Country && d.Country.trim() && d.Country !== "N/A" ? d.Country.trim() : "Unknown";
+                d.Attack_Type = d.Attack_Type && d.Attack_Type.trim() && d.Attack_Type !== "N/A" ? d.Attack_Type.trim() : "Unknown";
+                d.Target_Industry = d.Target_Industry && d.Target_Industry.trim() && d.Target_Industry !== "N/A" ? d.Target_Industry.trim() : "Unknown";
+            });
+
+            validData = data.filter(d => d.Year > 0 && d.Country !== "Unknown" && d.Attack_Type !== "Unknown");
+            if (validData.length === 0) console.warn("No valid data after filtering");
+            console.log("Invalid Rows:", data.filter(d => d.Year <= 0 || d.Country === "Unknown" || d.Attack_Type === "Unknown"));
+
+            const years = [...new Set(validData.map(d => d.Year))].sort();
+            const countries = [...new Set(validData.map(d => d.Country))].sort();
+            const attackTypes = [...new Set(validData.map(d => d.Attack_Type))].sort();
+
+            console.log("Years:", years);
+            console.log("Countries:", countries);
+            console.log("Attack Types:", attackTypes);
+
+            // Populate dropdowns
+            d3.select("#year-filter").selectAll("option")
+                .data(years)
+                .enter().append("option")
+                .text(d => d)
+                .attr("value", d => d);
+
+            d3.select("#country-filter").selectAll("option")
+                .data(countries)
+                .enter().append("option")
+                .text(d => d)
+                .attr("value", d => d);
+
+            d3.select("#attack-type-filter").selectAll("option")
+                .data(attackTypes)
+                .enter().append("option")
+                .text(d => d)
+                .attr("value", d => d);
+
+            // Initialize visualizations
+            updateVisualizations(validData);
+
+            // Add interactivity
+            d3.selectAll("select").on("change", function() {
+                console.log("Filter change detected");
+                const selectedYears = Array.from(d3.select("#year-filter").property("selectedOptions")).map(opt => +opt.value);
+                const selectedCountries = Array.from(d3.select("#country-filter").property("selectedOptions")).map(opt => opt.value);
+                const selectedAttackTypes = Array.from(d3.select("#attack-type-filter").property("selectedOptions")).map(opt => opt.value);
+
+                const filteredData = validData.filter(d =>
+                    (selectedYears.length === 0 || selectedYears.includes(d.Year)) &&
+                    (selectedCountries.length === 0 || selectedCountries.includes(d.Country)) &&
+                    (selectedAttackTypes.length === 0 || selectedAttackTypes.includes(d.Attack_Type))
+                );
+
+                console.log("Selected Years:", selectedYears);
+                console.log("Selected Countries:", selectedCountries);
+                console.log("Selected Attack Types:", selectedAttackTypes);
+                console.log("Filtered Data Length:", filteredData.length);
+
+                updateVisualizations(filteredData);
+            });
+        }
+
+        // Load local CSV
+        d3.csv("Global_Cybersecurity_Threats_2015-2024.csv").then(data => {
+            loadData(data);
+        }).catch(error => {
+            console.error("Error loading CSV:", error);
+            alert("Failed to load CSV. Ensure 'Global_Cybersecurity_Threats_2015-2024.csv' is in the project folder and run a local server (e.g., 'python -m http.server').");
+        });
+
+        // Reset filters
+        function resetFilters() {
+            d3.select("#year-filter").property("selectedIndex", -1);
+            d3.select("#country-filter").property("selectedIndex", -1);
+            d3.select("#attack-type-filter").property("selectedIndex", -1);
+            updateVisualizations(validData);
+            console.log("Filters reset");
+        }
+
+        // Update visualizations
+        function updateVisualizations(data) {
+            drawMap(data);
+            drawHistogram(data);
+            drawBox(data);
+            updateTable(data);
+        }
+
+        // Choropleth map (Attack frequency by country)
+        function drawMap(data) {
+            const mapSvg = d3.select("#map").html("");
+            if (data.length === 0) {
+                mapSvg.append("text")
+                    .attr("x", 300) // Centered for 600px width
+                    .attr("y", 225) // Centered for 450px height
+                    .attr("text-anchor", "middle")
+                    .text("No data available for selected filters");
+                return;
+            }
+            const projection = d3.geoMercator()
+                .scale(100) // Increased scale to fit 610x400
+                .translate([300, 225]); // Centered for 600x450
+            const path = d3.geoPath().projection(projection);
+            const color = d3.scaleSequential(d3.interpolateReds)
+                .domain([0, d3.max(d3.rollup(data, v => v.length, d => d.Country).values()) || 50]);
+
+            d3.json("https://unpkg.com/world-atlas@2.0.2/countries-110m.json").then(world => {
+                const countries = topojson.feature(world, world.objects.countries).features;
+                const counts = d3.rollup(data, v => v.length, d => d.Country);
+                mapSvg.append("text")
+                    .attr("x", 300)
+                    .attr("y", 20)
+                    .attr("text-anchor", "middle")
+                    .text("Attack Frequency by Country");
+                mapSvg.selectAll("path")
+                    .data(countries)
+                    .enter().append("path")
+                    .attr("d", path)
+                    .attr("fill", d => counts.get(d.properties.name) ? color(counts.get(d.properties.name)) : "#ccc")
+                    .attr("stroke", "#fff")
+                    .on("mouseover", function(event, d) {
+                        d3.select(this).attr("fill", "orange");
+                        const tooltip = d3.select("#tooltip");
+                        tooltip.style("visibility", "visible")
+                            .style("left", (event.pageX + 10) + "px")
+                            .style("top", (event.pageY - 10) + "px")
+                            .text(`${d.properties.name}: ${counts.get(d.properties.name) || 0} incidents`);
+                    })
+                    .on("mousemove", function(event) {
+                        d3.select("#tooltip")
+                            .style("left", (event.pageX + 10) + "px")
+                            .style("top", (event.pageY - 10) + "px");
+                    })
+                    .on("mouseout", function(event, d) {
+                        d3.select(this).attr("fill", counts.get(d.properties.name) ? color(counts.get(d.properties.name)) : "#ccc");
+                        d3.select("#tooltip").style("visibility", "hidden");
+                    });
+            });
+        }
+
+        // Histogram (Average Financial Loss by Industry)
+        function drawHistogram(data) {
+            const histSvg = d3.select("#histogram").html("");
+            if (data.length === 0) {
+                histSvg.append("text")
+                    .attr("x", 300)
+                    .attr("y", 150)
+                    .attr("text-anchor", "middle")
+                    .text("No data available for selected filters");
+                return;
+            }
+            const industries = [...new Set(data.map(d => d.Target_Industry))].sort();
+            const avgLoss = d3.rollup(data, v => d3.mean(v, d => +d.Financial_Loss) || 0, d => d.Target_Industry);
+            const x = d3.scaleBand().domain(industries).range([50, 550]).padding(0.1);
+            const y = d3.scaleLinear().domain([0, d3.max([...avgLoss.values()]) || 50]).range([250, 50]);
+
+            histSvg.selectAll("rect")
+                .data(industries)
+                .enter().append("rect")
+                .attr("x", d => x(d))
+                .attr("y", d => y(avgLoss.get(d) || 0))
+                .attr("width", x.bandwidth())
+                .attr("height", d => 250 - y(avgLoss.get(d) || 0))
+                .attr("fill", "steelblue")
+                .on("mouseover", function(event, d) {
+                    d3.select(this).attr("fill", "orange");
+                    d3.select("body").append("div")
+                        .attr("id", "tooltip")
+                        .attr("class", "tooltip")
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px")
+                        .text(`${d}: $${avgLoss.get(d).toFixed(2)}M`);
+                })
+                .on("mouseout", function() {
+                    d3.select(this).attr("fill", "steelblue");
+                    d3.select("#tooltip").remove();
+                });
+
+            histSvg.append("g")
+                .attr("transform", "translate(0,250)")
+                .call(d3.axisBottom(x).tickSize(0).tickPadding(10))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .attr("text-anchor", "end")
+                .attr("dx", "-0.8em")
+                .attr("dy", "0.15em");
+
+            histSvg.append("g")
+                .attr("transform", "translate(50,0)")
+                .call(d3.axisLeft(y));
+
+            histSvg.append("text")
+                .attr("x", 300)
+                .attr("y", 20)
+                .attr("text-anchor", "middle")
+                .text("Average Financial Loss by Industry");
+        }
+
+        // Box plot (Resolution time by attack type)
+        function drawBox(data) {
+            const boxSvg = d3.select("#box").html("");
+            if (data.length === 0) {
+                boxSvg.append("text")
+                    .attr("x", 300)
+                    .attr("y", 150)
+                    .attr("text-anchor", "middle")
+                    .text("No data available for selected filters");
+                return;
+            }
+            const margin = {top: 50, right: 50, bottom: 100, left: 80};
+            const width = 500 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+
+            const g = boxSvg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const attackTypes = [...new Set(data.map(d => d.Attack_Type))].sort();
+            const groupedData = attackTypes.map(type => ({
+                type,
+                values: data.filter(d => d.Attack_Type === type)
+                    .map(d => d.Resolution_Time)
+                    .filter(v => !isNaN(v))
+                    .sort((a, b) => a - b)
+            }));
+
+            const stats = groupedData.map(group => {
+                const values = group.values;
+                if (values.length === 0) return { type: group.type, q1: 0, median: 0, q3: 0, min: 0, max: 0, outliers: [] };
+                const q1 = d3.quantile(values, 0.25);
+                const median = d3.quantile(values, 0.5);
+                const q3 = d3.quantile(values, 0.75);
+                const iqr = q3 - q1;
+                const min = Math.max(q1 - 1.5 * iqr, values[0]);
+                const max = Math.min(q3 + 1.5 * iqr, values[values.length - 1]);
+                const outliers = values.filter(v => v < min || v > max);
+                return { type: group.type, q1, median, q3, min, max, outliers };
+            }).filter(d => d.q1 !== undefined);
+
+            console.log("Box Plot Stats:", stats);
+
+            const x = d3.scaleBand()
+                .domain(attackTypes)
+                .range([0, width])
+                .padding(0.4);
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(stats, d => d.max) * 1.1 || 100])
+                .range([height, 0]);
+
+            g.selectAll(".box")
+                .data(stats)
+                .enter().append("rect")
+                .attr("class", "box")
+                .attr("x", d => x(d.type))
+                .attr("y", d => y(d.q3))
+                .attr("width", x.bandwidth())
+                .attr("height", d => y(d.q1) - y(d.q3));
+
+            g.selectAll(".median-line")
+                .data(stats)
+                .enter().append("line")
+                .attr("class", "median-line")
+                .attr("x1", d => x(d.type))
+                .attr("x2", d => x(d.type) + x.bandwidth())
+                .attr("y1", d => y(d.median))
+                .attr("y2", d => y(d.median));
+
+            g.selectAll(".whisker-min")
+                .data(stats)
+                .enter().append("line")
+                .attr("class", "whisker")
+                .attr("x1", d => x(d.type) + x.bandwidth() / 2)
+                .attr("x2", d => x(d.type) + x.bandwidth() / 2)
+                .attr("y1", d => y(d.min))
+                .attr("y2", d => y(d.q1));
+
+            g.selectAll(".whisker-max")
+                .data(stats)
+                .enter().append("line")
+                .attr("class", "whisker")
+                .attr("x1", d => x(d.type) + x.bandwidth() / 2)
+                .attr("x2", d => x(d.type) + x.bandwidth() / 2)
+                .attr("y1", d => y(d.q3))
+                .attr("y2", d => y(d.max));
+
+            g.selectAll(".whisker-cap-min")
+                .data(stats)
+                .enter().append("line")
+                .attr("class", "whisker")
+                .attr("x1", d => x(d.type) + x.bandwidth() / 4)
+                .attr("x2", d => x(d.type) + x.bandwidth() * 3 / 4)
+                .attr("y1", d => y(d.min))
+                .attr("y2", d => y(d.min));
+
+            g.selectAll(".whisker-cap-max")
+                .data(stats)
+                .enter().append("line")
+                .attr("class", "whisker")
+                .attr("x1", d => x(d.type) + x.bandwidth() / 4)
+                .attr("x2", d => x(d.type) + x.bandwidth() * 3 / 4)
+                .attr("y1", d => y(d.max))
+                .attr("y2", d => y(d.max));
+
+            g.selectAll(".outlier")
+                .data(stats)
+                .enter().selectAll("circle")
+                .data(d => d.outliers.map(value => ({ type: d.type, value })))
+                .enter().append("circle")
+                .attr("class", "outlier")
+                .attr("cx", d => x(d.type) + x.bandwidth() / 2)
+                .attr("cy", d => y(d.value))
+                .attr("r", 3);
+
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .attr("text-anchor", "end")
+                .attr("dx", "-0.8em")
+                .attr("dy", "0.15em");
+
+            g.append("g")
+                .call(d3.axisLeft(y))
+                .append("text")
+                .attr("fill", "#000")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -40)
+                .attr("x", -height / 2)
+                .attr("text-anchor", "middle")
+                .text("Resolution Time (Hours)");
+
+            g.append("text")
+                .attr("x", width / 2)
+                .attr("y", -20)
+                .attr("text-anchor", "middle")
+                .text("Resolution Time by Attack Type");
+        }
+
+        // Update table
+        function updateTable(data) {
+            const tbody = d3.select("#data-table");
+            tbody.html(""); // Clear previous rows
+
+            if (data.length === 0) {
+                tbody.append("tr")
+                    .append("td")
+                    .attr("colspan", "5")
+                    .attr("class", "text-center")
+                    .text("No data available");
+                return;
+            }
+
+            const rows = tbody.selectAll("tr")
+                .data(data)
+                .enter()
+                .append("tr");
+
+            rows.append("td")
+                .text(d => d.Year);
+            rows.append("td")
+                .text(d => d.Country);
+            rows.append("td")
+            .text(d => d.Attack_Type);
+            rows.append("td")
+                .text(d => d.Financial_Loss.toFixed(2));
+            rows.append("td")
+                .text(d => d.Target_Industry);
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+</body>
+</html>
