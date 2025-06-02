@@ -211,11 +211,20 @@
         }
 
         // Load local CSV
-        d3.csv("Global_Cybersecurity_Threats_2015-2024.csv").then(data => {
+        //d3.csv("Global_Cybersecurity_Threats_2015-2024.csv").then(data => {
+        //    loadData(data);
+        //}).catch(error => {
+        //    console.error("Error loading CSV:", error);
+        //   alert("Failed to load CSV. Ensure 'Global_Cybersecurity_Threats_2015-2024.csv' is in the project folder and run a local server (e.g., 'python -m http.server').");
+        //});
+
+
+        // Load CSV from GitHub
+        d3.csv("https://raw.githubusercontent.com/nnn2025/infovizproject_cybersecurity/main/Global_Cybersecurity_Threats_2015-2024.csv").then(data => {
             loadData(data);
-        }).catch(error => {
-            console.error("Error loading CSV:", error);
-            alert("Failed to load CSV. Ensure 'Global_Cybersecurity_Threats_2015-2024.csv' is in the project folder and run a local server (e.g., 'python -m http.server').");
+        .catch(error => {
+           console.error("Error loading CSV:", error);
+            alert("Failed to load CSV. Check the URL.");
         });
 
         // Reset filters
