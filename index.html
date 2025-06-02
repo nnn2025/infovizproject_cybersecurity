@@ -13,11 +13,19 @@
             font-family: sans-serif;
             margin: auto;
         }
-        .container {
-            max-width: 1000px;
-            background: white;
-            padding: 20px;
+        .grid-container {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 10px;
+            padding: 10px;
         }
+
+        .grid-container > div {
+            text-align: center;
+            padding: 10px;
+            font-size: 20px;
+        }
+
         svg {
             display: block;
             margin: 20px auto;
@@ -61,8 +69,9 @@
         .table-container {
             max-height: 400px;
             overflow-y: auto;
-            width: 650px;
+            width: 500px;
             margin: auto;
+            font-size: 15px;
         }
         table {
             width: 100%;
@@ -73,22 +82,21 @@
             max-width: 0;
         }
         th {
-        background-color: #f0f0f0;
+            background-color: #f0f0f0;
+        }
+        .item1 {
+            grid-column-start: 1;
+            grid-column-end: 3;
+        }
+        h1 {
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <header>
-        <nav class="container navbar navbar-light bg-light">
-            <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1">Cybersecurity Threats Dashboard</span>
-            </div>
-        </nav>
-    </header>
-    <main class="container pb-3">
-        <div class="row pt-2">
-            <div class="col">
-                <p>Select the options in filters:</p>
+    <h1>Cyber Security Threat Dashboard</h1>
+        <div class="grid-container">
+            <div class="item1">
                 <label for="year-filter">Year:</label>
                 <select id="year-filter"></select>
                 <label for="attack-type-filter">Attack Type:</label>
@@ -97,21 +105,10 @@
                 <select id="country-filter"></select>
                 <button onclick="resetFilters()">Reset Filters</button>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-7">
-                <div class="row">
-                    <div class="col text-center">
-                        <svg width="650" height="400" id="map"></svg>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col text-center">
-                        <svg width="650" height="400" id="histogram"></svg>
-                    </div>
-                </div>
+            <div class="item2">
+                <svg width="650" height="400" id="map"></svg>			
             </div>
-            <div class="col-6">
+            <div class="item3">
                 <div class="table-container">
                     <table class="table table-striped text-center">
                         <thead>
@@ -122,16 +119,16 @@
                                 <th>Financial Loss</th>
                                 <th>Target Industry</th>
                             </tr>
-                        </thead>
-                        <tbody id="data-table"></tbody>
-                    </table>
-                </div>
-                <div class="row">
-                    <div class="col text-center">
-                        <svg width="650" height="400" id="box"></svg>
-                    </div>
-                </div>
-            </div>
+                         </thead>
+                         <tbody id="data-table"></tbody>
+                     </table>
+                </div>                    
+            </div>  
+        <div class="item4">
+            <svg width="650" height="400" id="histogram"></svg>
+        </div>
+        <div class="item5">
+            <svg width="650" height="400" id="box"></svg>
         </div>
         <div class="tooltip" id="tooltip"></div>
     </main>
@@ -401,6 +398,10 @@
                 .domain([0, d3.max(stats, d => d.max) * 1.1 || 100])
                 .range([height, 0]);
 
+
+            // Tooltip setup
+             const tooltip = d3.select("#tooltip");
+
             g.selectAll(".box")
                 .data(stats)
                 .enter().append("rect")
@@ -408,7 +409,18 @@
                 .attr("x", d => x(d.type))
                 .attr("y", d => y(d.q3))
                 .attr("width", x.bandwidth())
-                .attr("height", d => y(d.q1) - y(d.q3));
+                .attr("height", d => y(d.q1) - y(d.q3))
+                .on("mouseover", function(event, d) {
+                    d3.select(this).attr("fill", "Crimson");
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px")
+                        .style("display", "block")
+                        .html(`Attack Type: ${d.type}<br>Q1: ${d.q1.toFixed(2)} hrs<br>Median: ${d.median.toFixed(2)} hrs<br>Q3: ${d.q3.toFixed(2)} hrs`);
+                })
+                .on("mouseout", function() {
+                    d3.select(this).attr("fill", "lightblue");
+                    tooltip.style("display", "none");
+                });
 
             g.selectAll(".median-line")
                 .data(stats)
@@ -489,6 +501,7 @@
                 .attr("y", -20)
                 .attr("text-anchor", "middle")
                 .text("Resolution Time by Attack Type");
+                
         }
 
         // Update table
