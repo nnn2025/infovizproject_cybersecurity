@@ -125,6 +125,7 @@
                                 <th>Attack Type</th>
                                 <th>Financial Loss</th>
                                 <th>Target Industry</th>
+                                <th>Defense Mechanism Used</th>
                             </tr>
                          </thead>
                          <tbody id="data-table"></tbody>
@@ -157,6 +158,7 @@
                 d.Country = d.Country && d.Country.trim() && d.Country !== "N/A" ? d.Country.trim() : "Unknown";
                 d.Attack_Type = d.Attack_Type && d.Attack_Type.trim() && d.Attack_Type !== "N/A" ? d.Attack_Type.trim() : "Unknown";
                 d.Target_Industry = d.Target_Industry && d.Target_Industry.trim() && d.Target_Industry !== "N/A" ? d.Target_Industry.trim() : "Unknown";
+                d.Defense_Mechanism_Used = d.Defense_Mechanism_Used && d.Defense_Mechanism_Used.trim() && d.Defense_Mechanism_Used !== "N/A" ? d.Defense_Mechanism_Used.trim() : "Unknown";
             });
 
             validData = data.filter(d => d.Year > 0 && d.Country !== "Unknown" && d.Attack_Type !== "Unknown");
@@ -526,7 +528,7 @@
             if (data.length === 0) {
                 tbody.append("tr")
                     .append("td")
-                    .attr("colspan", "5")
+                    .attr("colspan", "6")
                     .attr("class", "text-center")
                     .text("No data available");
                 return;
@@ -547,6 +549,8 @@
                 .text(d => d.Financial_Loss.toFixed(2));
             rows.append("td")
                 .text(d => d.Target_Industry);
+            rows.append("td")
+                .text(d => d.Defense_Mechanism_Used);
         }
     </script>
 </body>
